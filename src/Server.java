@@ -1,35 +1,25 @@
 import java.net.*;
 import java.io.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
+    private static ExecutorService executeIt = Executors.newFixedThreadPool(10);
+    static int number = 100;
+
     public static void main(String[] args) {
 
         try (ServerSocket serverSocket = new ServerSocket(8000)) {
-            int count = 0;
-            int number = 100;
+            System.out.println("Server is ready");
+            int count = 1;
 
-            try (Socket clientSocket = serverSocket.accept();
-                 DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
-                 DataInputStream in = new DataInputStream(clientSocket.getInputStream())) {
-                while (!clientSocket.isClosed()) {
-                    System.out.println("Client accepted " + (count++));
-                    String request = in.readUTF();
-
-                    int requestParsed = Integer.parseInt(request);
-                    System.out.println(requestParsed);
-                    if (requestParsed > number) {
-                        out.writeUTF("Your number is bigger");
-                        out.flush();
-                    } else if (requestParsed < number) {
-                        out.writeUTF("Your number is lower");
-                        out.flush();
-                    } else {
-                        out.writeUTF("You right!");
-                        out.flush();
-                        break;
-                    }
-                }
+            while (!serverSocket.isClosed()) {
+                Socket clientSocket = serverSocket.accept();
+                executeIt.execute(new MonoThreadClientHandler(clientSocket, count));
+                System.out.println("Клиент #" + count + " подключился.");
+                count++;
             }
+            executeIt.shutdown();
         } catch (IOException exc) {
             exc.printStackTrace();
         }
